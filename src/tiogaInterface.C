@@ -150,9 +150,22 @@ extern "C" {
     tg->register_amr_solution(*ipatch,q,nvar_cell,nvar_node);
   }
 
+  void tioga_setcomposite_(int *ncomp)
+  {
+    tg->setNumCompositeBodies(*ncomp);
+  }
+
+  void tioga_register_composite_body_(int *compbodytag,int *nbodytags,int *bodytags,int *dominancetags,double *searchTol)
+  {
+    tg->registerCompositeBody(*compbodytag,*nbodytags,bodytags,dominancetags,*searchTol);
+  }
+
   void tioga_preprocess_grids_(void)
   {
-    if(tg->getHoleMapAlgorithm() == 1) tg->assembleComms(); // adaptive alg
+    if(tg->getHoleMapAlgorithm() == 1){
+      tg->assembleComplementComms(); // build complement rank communicators
+      if(tg->getNumCompositeBodies()>0) tg->assembleCompositeMap(); // abutting meshes (AFTER assembleComplementComms)
+    }
     tg->profile();
   }
 
