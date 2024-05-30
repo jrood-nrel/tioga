@@ -744,7 +744,7 @@ void tioga::dataUpdate(int nvar,int interptype, int at_points)
   fp=NULL;
   //
   pc->getMap(&nsend,&nrecv,&sndMap,&rcvMap);
-  if (nsend==0) return;
+  //if (nsend==0) return;
   sndPack=(PACKET *)malloc(sizeof(PACKET)*nsend);
   rcvPack=(PACKET *)malloc(sizeof(PACKET)*nrecv);
   //
@@ -808,7 +808,7 @@ void tioga::dataUpdate(int nvar,int interptype, int at_points)
   //
   // communicate the data across
   //
-  pc->sendRecvPackets(sndPack,rcvPack);
+  pc->sendRecvPackets2(sndPack,rcvPack);
   //
   // decode the packets and update the data
   //
@@ -969,7 +969,7 @@ void tioga::getReceptorInfo(std::vector<int>& receptors)
 
   if (nsend == 0) {
       receptors.clear();
-      return;
+      //return;
   }
 
   //
@@ -1038,7 +1038,7 @@ void tioga::getReceptorInfo(std::vector<int>& receptors)
     }
   }
 
-  pc->sendRecvPackets(sndPack, rcvPack);
+  pc->sendRecvPackets2(sndPack, rcvPack);
 
   int rsize=0;
   for (int k=0; k<nrecv; k++) {
@@ -1226,7 +1226,7 @@ void tioga::reduce_fringes(void)
   //
   // communciate cancellation data comm 3
   //
-  pc->sendRecvPackets(sndPack,rcvPack);
+  pc->sendRecvPackets2(sndPack,rcvPack);
   //
   for (int k=0; k<nrecv; k++) {
     int m = 0;
@@ -1276,7 +1276,7 @@ void tioga::reduce_fringes(void)
   // comm 4
   // final receptor data to set iblanks
   //
-  pc->sendRecvPackets(sndPack,rcvPack);
+  pc->sendRecvPackets2(sndPack,rcvPack);
   //
   for(int ib=0;ib<nblocks;ib++)
     mblocks[ib]->clearIblanks();
