@@ -26,27 +26,16 @@
 
 void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
 {
-  int i;
-  int *sint,*sreal,*rint,*rreal;
-  //
-  sint=(int *)malloc(sizeof(int)*numprocs);
-  sreal=(int *) malloc(sizeof(int)*numprocs);
-  rint=(int *)malloc(sizeof(int)*numprocs);
-  rreal=(int *) malloc(sizeof(int)*numprocs);
-  //
-  for(i=0;i<numprocs;i++){
+  //Int
+  int *sint=(int *)malloc(sizeof(int)*numprocs);
+  int *rint=(int *)malloc(sizeof(int)*numprocs);
+  for(int i=0;i<numprocs;i++){
     sint[i]=sndPack[i].nints;			
-    sreal[i]=sndPack[i].nreals;
   }
-  //
   MPI_Alltoall(sint,1,MPI_INT,rint,1,MPI_INT,scomm);
-  MPI_Alltoall(sreal,1,MPI_INT,rreal,1,MPI_INT,scomm);
-  //
-  for(i=0;i<numprocs;i++) {
+  for(int i=0;i<numprocs;i++) {
     rcvPack[i].nints=rint[i];
-    rcvPack[i].nreals=rreal[i];
   }
-  //
 
   int all_snd_nints = std::accumulate(sint, sint + numprocs, 0);
   int all_rcv_nints = std::accumulate(rint, rint + numprocs, 0);
@@ -77,6 +66,17 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
                 scomm,
                 &int_request);
 
+
+  //Real
+  int *sreal=(int *) malloc(sizeof(int)*numprocs);
+  int *rreal=(int *) malloc(sizeof(int)*numprocs);
+  for(int i=0;i<numprocs;i++){
+    sreal[i]=sndPack[i].nreals;
+  }
+  MPI_Alltoall(sreal,1,MPI_INT,rreal,1,MPI_INT,scomm);
+  for(int i=0;i<numprocs;i++) {
+    rcvPack[i].nreals=rreal[i];
+  }
   int all_snd_nreals = std::accumulate(sreal, sreal + numprocs, 0);
   int all_rcv_nreals = std::accumulate(rreal, rreal + numprocs, 0);
   REAL *all_snd_realData, *all_rcv_realData;
@@ -107,20 +107,27 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
                 &real_request);
 
   MPI_Wait(&int_request, MPI_STATUS_IGNORE);
-  for(i=0;i<numprocs;i++){
+  for(int i=0;i<numprocs;i++){
     if (rcvPack[i].nints > 0) {
       rcvPack[i].intData=(int *) malloc(sizeof(int)*rcvPack[i].nints);
     }
-    if (rcvPack[i].nreals > 0) {
-      rcvPack[i].realData=(REAL *) malloc(sizeof(REAL)*rcvPack[i].nreals);
-    }
   }
-
-  MPI_Wait(&real_request, MPI_STATUS_IGNORE);
   for (int i=0; i < numprocs; i++) {
     int displ = rcv_int_displs[i];
     for(int j=0; j < rint[i]; j++){
       rcvPack[i].intData[j] = all_rcv_intData[displ+j];
+    }
+  }
+ 
+  TIOGA_FREE(all_snd_intData);
+  TIOGA_FREE(all_rcv_intData);
+  TIOGA_FREE(sint);
+  TIOGA_FREE(rint);
+
+  MPI_Wait(&real_request, MPI_STATUS_IGNORE);
+  for(int i=0;i<numprocs;i++){
+    if (rcvPack[i].nreals > 0) {
+      rcvPack[i].realData=(REAL *) malloc(sizeof(REAL)*rcvPack[i].nreals);
     }
   }
   for (int i=0; i < numprocs; i++) {
@@ -130,13 +137,9 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
     }
   }
 
-  TIOGA_FREE(all_snd_intData);
-  TIOGA_FREE(all_rcv_intData);
   TIOGA_FREE(all_snd_realData);
   TIOGA_FREE(all_rcv_realData);
-  TIOGA_FREE(sint);
   TIOGA_FREE(sreal);
-  TIOGA_FREE(rint);
   TIOGA_FREE(rreal);
 }
 
