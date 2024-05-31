@@ -217,29 +217,20 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
 
 void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
 {
-  int i;
-  int *sint,*sreal,*rint,*rreal;
-  //
-  sint=(int *)malloc(sizeof(int)*numprocs);
-  sreal=(int *) malloc(sizeof(int)*numprocs);
-  rint=(int *)malloc(sizeof(int)*numprocs);
-  rreal=(int *) malloc(sizeof(int)*numprocs);
+  //Int
+  int *sint=(int *)malloc(sizeof(int)*numprocs);
+  int *rint=(int *)malloc(sizeof(int)*numprocs);
   // remove when using stl vectors and just init the vectors to 0
-  for(i=0;i<numprocs;i++){
-    sint[i]=sreal[i]=0;
-    rint[i]=rreal[i]=0;
+  for(int i=0;i<numprocs;i++){
+    sint[i]=0;
+    rint[i]=0;
   }
-  for(i=0;i<nsend;i++){
-    sint[sndMap[i]]=sndPack[i].nints;			
-    sreal[sndMap[i]]=sndPack[i].nreals;
+  for(int i=0;i<nsend;i++){
+    sint[sndMap[i]]=sndPack[i].nints;
   }
-  //
   MPI_Alltoall(sint,1,MPI_INT,rint,1,MPI_INT,scomm);
-  MPI_Alltoall(sreal,1,MPI_INT,rreal,1,MPI_INT,scomm);
-  //
-  for(i=0;i<nrecv;i++) {
+  for(int i=0;i<nrecv;i++) {
     rcvPack[i].nints=rint[rcvMap[i]];
-    rcvPack[i].nreals=rreal[rcvMap[i]];
   }
 
   int all_snd_nints = std::accumulate(sint, sint + numprocs, 0);
@@ -277,6 +268,21 @@ void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
                 scomm,
                 &int_request);
 
+  //Real
+  int *sreal=(int *)malloc(sizeof(int)*numprocs);
+  int *rreal=(int *)malloc(sizeof(int)*numprocs);
+  for(int i=0;i<numprocs;i++){
+    sreal[i]=0;
+    rreal[i]=0;
+  }
+  for(int i=0;i<nsend;i++){
+    sreal[sndMap[i]]=sndPack[i].nreals;
+  }
+  MPI_Alltoall(sreal,1,MPI_INT,rreal,1,MPI_INT,scomm);
+  for(int i=0;i<nrecv;i++) {
+    rcvPack[i].nreals=rreal[rcvMap[i]];
+  }
+
   int all_snd_nreals = std::accumulate(sreal, sreal + numprocs, 0);
   int all_rcv_nreals = std::accumulate(rreal, rreal + numprocs, 0);
   REAL *all_snd_realData, *all_rcv_realData;
@@ -312,25 +318,30 @@ void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
                 scomm,
                 &real_request);
 
-  // FIXME: here and above I think I should move this a bit lower
   MPI_Wait(&int_request, MPI_STATUS_IGNORE);
-  for(i=0;i<nrecv;i++){
+  for(int i=0;i<nrecv;i++){
     if (rcvPack[i].nints > 0) {
       rcvPack[i].intData=(int *) malloc(sizeof(int)*rcvPack[i].nints);
     }
-    if (rcvPack[i].nreals > 0) {
-      rcvPack[i].realData=(REAL *) malloc(sizeof(REAL)*rcvPack[i].nreals);
-    }
   }
-
-  // FIXME: here and above I think I should move this a bit lower
-  MPI_Wait(&real_request, MPI_STATUS_IGNORE);
   for (int i=0; i < nrecv; i++) {
     int displ = rcv_int_displs[rcvMap[i]];
     for(int j=0; j < rint[rcvMap[i]]; j++){
       rcvPack[i].intData[j] = all_rcv_intData[displ+j];
     }
   }
+  TIOGA_FREE(all_snd_intData);
+  TIOGA_FREE(all_rcv_intData);
+  TIOGA_FREE(sint);
+  TIOGA_FREE(rint);
+
+  MPI_Wait(&real_request, MPI_STATUS_IGNORE);
+  for(int i=0;i<nrecv;i++){
+    if (rcvPack[i].nreals > 0) {
+      rcvPack[i].realData=(REAL *) malloc(sizeof(REAL)*rcvPack[i].nreals);
+    }
+  }
+
   for (int i=0; i < nrecv; i++) {
     int displ = rcv_real_displs[rcvMap[i]];
     for(int j=0; j < rreal[rcvMap[i]]; j++){
@@ -338,13 +349,9 @@ void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
     }
   }
 
-  TIOGA_FREE(all_snd_intData);
-  TIOGA_FREE(all_rcv_intData);
   TIOGA_FREE(all_snd_realData);
   TIOGA_FREE(all_rcv_realData);
-  TIOGA_FREE(sint);
   TIOGA_FREE(sreal);
-  TIOGA_FREE(rint);
   TIOGA_FREE(rreal);
 }
 
