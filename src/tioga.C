@@ -493,6 +493,7 @@ void tioga::performConnectivity(void)
   //this->reduce_fringes();
   //outputStatistics();
   //MPI_Allreduce(&ihigh,&ihighGlobal,1,MPI_INT,MPI_MAX,scomm);
+  assert(ihigh == 0);
   ihighGlobal = 0;
   //if (ihighGlobal) {
   this->myTimer("tioga::getCellIblanks",0);
