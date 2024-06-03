@@ -26,15 +26,12 @@
 
 void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
 {
-  int i;
-  int *sint,*sreal,*rint,*rreal;
+  int *sint=(int *)malloc(sizeof(int)*numprocs);
+  int *sreal=(int *) malloc(sizeof(int)*numprocs);
+  int *rint=(int *)malloc(sizeof(int)*numprocs);
+  int *rreal=(int *) malloc(sizeof(int)*numprocs);
   //
-  sint=(int *)malloc(sizeof(int)*numprocs);
-  sreal=(int *) malloc(sizeof(int)*numprocs);
-  rint=(int *)malloc(sizeof(int)*numprocs);
-  rreal=(int *) malloc(sizeof(int)*numprocs);
-  //
-  for(i=0;i<numprocs;i++){
+  for(int i=0;i<numprocs;i++){
     sint[i]=sndPack[i].nints;			
     sreal[i]=sndPack[i].nreals;
   }
@@ -42,7 +39,7 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
   MPI_Alltoall(sint,1,MPI_INT,rint,1,MPI_INT,scomm);
   MPI_Alltoall(sreal,1,MPI_INT,rreal,1,MPI_INT,scomm);
   //
-  for(i=0;i<numprocs;i++) {
+  for(int i=0;i<numprocs;i++) {
     rcvPack[i].nints=rint[i];
     rcvPack[i].nreals=rreal[i];
   }
@@ -107,7 +104,7 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
                 &real_request);
 
   MPI_Wait(&int_request, MPI_STATUS_IGNORE);
-  for(i=0;i<numprocs;i++){
+  for(int i=0;i<numprocs;i++){
     if (rcvPack[i].nints > 0) {
       rcvPack[i].intData=(int *) malloc(sizeof(int)*rcvPack[i].nints);
     }
@@ -214,19 +211,16 @@ void parallelComm::sendRecvPacketsAll(PACKET *sndPack, PACKET *rcvPack)
 
 void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
 {
-  int i;
-  int *sint,*sreal,*rint,*rreal;
-  //
-  sint=(int *)malloc(sizeof(int)*numprocs);
-  sreal=(int *) malloc(sizeof(int)*numprocs);
-  rint=(int *)malloc(sizeof(int)*numprocs);
-  rreal=(int *) malloc(sizeof(int)*numprocs);
+  int *sint=(int *)malloc(sizeof(int)*numprocs);
+  int *sreal=(int *) malloc(sizeof(int)*numprocs);
+  int *rint=(int *)malloc(sizeof(int)*numprocs);
+  int *rreal=(int *) malloc(sizeof(int)*numprocs);
   // remove when using stl vectors and just init the vectors to 0
-  for(i=0;i<numprocs;i++){
+  for(int i=0;i<numprocs;i++){
     sint[i]=sreal[i]=0;
     rint[i]=rreal[i]=0;
   }
-  for(i=0;i<nsend;i++){
+  for(int i=0;i<nsend;i++){
     sint[sndMap[i]]=sndPack[i].nints;			
     sreal[sndMap[i]]=sndPack[i].nreals;
   }
@@ -234,7 +228,7 @@ void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
   MPI_Alltoall(sint,1,MPI_INT,rint,1,MPI_INT,scomm);
   MPI_Alltoall(sreal,1,MPI_INT,rreal,1,MPI_INT,scomm);
   //
-  for(i=0;i<nrecv;i++) {
+  for(int i=0;i<nrecv;i++) {
     rcvPack[i].nints=rint[rcvMap[i]];
     rcvPack[i].nreals=rreal[rcvMap[i]];
   }
@@ -311,7 +305,7 @@ void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
 
   // FIXME: here and above I think I should move this a bit lower
   MPI_Wait(&int_request, MPI_STATUS_IGNORE);
-  for(i=0;i<nrecv;i++){
+  for(int i=0;i<nrecv;i++){
     if (rcvPack[i].nints > 0) {
       rcvPack[i].intData=(int *) malloc(sizeof(int)*rcvPack[i].nints);
     }
@@ -347,40 +341,34 @@ void parallelComm::sendRecvPackets2(PACKET *sndPack,PACKET *rcvPack)
 
 void parallelComm::sendRecvPackets(PACKET *sndPack,PACKET *rcvPack)
 {
-  int i;
-  int *scount,*rcount;
-  int tag,irnum;
-  MPI_Request *request;
-  MPI_Status *status;
+  int *scount=(int *)malloc(2*sizeof(int)*nsend);
+  int *rcount=(int *) malloc(2*sizeof(int)*nrecv);
+  MPI_Request *request=(MPI_Request *) malloc(sizeof(MPI_Request)*2*(nsend+nrecv));
+  MPI_Status *status=(MPI_Status *) malloc(sizeof(MPI_Status)*2*(nsend+nrecv));
   //
-  scount=(int *)malloc(2*sizeof(int)*nsend);
-  rcount=(int *) malloc(2*sizeof(int)*nrecv);
-  request=(MPI_Request *) malloc(sizeof(MPI_Request)*2*(nsend+nrecv));
-  status=(MPI_Status *) malloc(sizeof(MPI_Status)*2*(nsend+nrecv));
-  //
-  for(i=0;i<nsend;i++){
+  for(int i=0;i<nsend;i++){
     scount[2*i]=sndPack[i].nints;			
     scount[2*i+1]=sndPack[i].nreals;
   }
   //
-  irnum=0;
-  tag=1;
+  int irnum=0;
+  int tag=1;
   //
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     MPI_Irecv(&(rcount[2*i]),2,MPI_INT,rcvMap[i],tag,scomm,&request[irnum++]);
   //
-  for(i=0;i<nsend;i++)
+  for(int i=0;i<nsend;i++)
     MPI_Isend(&(scount[2*i]),2,MPI_INT,sndMap[i],tag,scomm,&request[irnum++]);
   //
   MPI_Waitall(irnum,request,status);
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     {
       rcvPack[i].nints=rcount[2*i];
       rcvPack[i].nreals=rcount[2*i+1];
     }
   //
   irnum=0;
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     {
       if (rcvPack[i].nints > 0) {
 	tag=1;
@@ -398,7 +386,7 @@ void parallelComm::sendRecvPackets(PACKET *sndPack,PACKET *rcvPack)
       }
     }
   //
-  for(i=0;i<nsend;i++)
+  for(int i=0;i<nsend;i++)
     {
       if (sndPack[i].nints > 0){
 	tag=1;
@@ -423,34 +411,28 @@ void parallelComm::sendRecvPackets(PACKET *sndPack,PACKET *rcvPack)
 
 void parallelComm::sendRecvPacketsCheck(PACKET *sndPack,PACKET *rcvPack)
 {
-  int i;
-  int *scount,*rcount;
-  int tag,irnum;
-  MPI_Request *request;
-  MPI_Status *status;
+  int *scount=(int *)malloc(2*sizeof(int)*nsend);
+  int *rcount=(int *) malloc(2*sizeof(int)*nrecv);
+  MPI_Request *request=(MPI_Request *) malloc(sizeof(MPI_Request)*2*(nsend+nrecv));
+  MPI_Status *status=(MPI_Status *) malloc(sizeof(MPI_Status)*2*(nsend+nrecv));
   //
-  scount=(int *)malloc(2*sizeof(int)*nsend);
-  rcount=(int *) malloc(2*sizeof(int)*nrecv);
-  request=(MPI_Request *) malloc(sizeof(MPI_Request)*2*(nsend+nrecv));
-  status=(MPI_Status *) malloc(sizeof(MPI_Status)*2*(nsend+nrecv));
-  //
-  for(i=0;i<nsend;i++){
+  for(int i=0;i<nsend;i++){
     scount[2*i]=sndPack[i].nints;			
     scount[2*i+1]=sndPack[i].nreals;
   }
   //
-  irnum=0;
-  tag=1;
+  int irnum=0;
+  int tag=1;
   //
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     MPI_Irecv(&(rcount[2*i]),2,MPI_INT,rcvMap[i],tag,scomm,&request[irnum++]);
   //
-  for(i=0;i<nsend;i++)
+  for(int i=0;i<nsend;i++)
     MPI_Isend(&(scount[2*i]),2,MPI_INT,sndMap[i],tag,scomm,&request[irnum++]);
   //
   MPI_Waitall(irnum,request,status);
 
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     {
       rcvPack[i].nints=rcount[2*i];
       rcvPack[i].nreals=rcount[2*i+1];
@@ -466,7 +448,7 @@ void parallelComm::sendRecvPacketsCheck(PACKET *sndPack,PACKET *rcvPack)
   //  }
   //
   irnum=0;
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     {
       if (rcvPack[i].nints > 0) {
 	tag=1;
@@ -484,7 +466,7 @@ void parallelComm::sendRecvPacketsCheck(PACKET *sndPack,PACKET *rcvPack)
       }
     }
   //
-  for(i=0;i<nsend;i++)
+  for(int i=0;i<nsend;i++)
     {
       if (sndPack[i].nints > 0){
 	tag=1;
@@ -509,8 +491,6 @@ void parallelComm::sendRecvPacketsCheck(PACKET *sndPack,PACKET *rcvPack)
 
 void parallelComm::setMap(int ns,int nr, int *snd,int *rcv)
 {
-  int i;
-  //
   if (sndMap) TIOGA_FREE(sndMap); sndMap=NULL;
   if (rcvMap) TIOGA_FREE(rcvMap); rcvMap=NULL;
   //
@@ -519,8 +499,8 @@ void parallelComm::setMap(int ns,int nr, int *snd,int *rcv)
   sndMap=(int *) malloc(sizeof(int)*nsend);
   rcvMap=(int *) malloc(sizeof(int)*nrecv);
   //
-  for(i=0;i<nsend;i++) sndMap[i]=snd[i];
-  for(i=0;i<nrecv;i++) rcvMap[i]=rcv[i];
+  for(int i=0;i<nsend;i++) sndMap[i]=snd[i];
+  for(int i=0;i<nrecv;i++) rcvMap[i]=rcv[i];
 }
 
 void parallelComm::getMap(int *ns, int *nr, int **snd,int **rcv)
@@ -535,17 +515,16 @@ void parallelComm::getMap(int *ns, int *nr, int **snd,int **rcv)
   
 void parallelComm::clearPackets(PACKET *sndPack, PACKET *rcvPack)
 {
-  int i;
   //
   // free Send and recv data
   //
-  for(i=0;i<nsend;i++)
+  for(int i=0;i<nsend;i++)
     {
       if (sndPack[i].intData) TIOGA_FREE(sndPack[i].intData);
       if (sndPack[i].realData) TIOGA_FREE(sndPack[i].realData);
       sndPack[i].nints=sndPack[i].nreals=0;
     }
-  for(i=0;i<nrecv;i++)
+  for(int i=0;i<nrecv;i++)
     {
       if (rcvPack[i].intData) TIOGA_FREE(rcvPack[i].intData);
       if (rcvPack[i].realData) TIOGA_FREE(rcvPack[i].realData);
@@ -557,20 +536,16 @@ void parallelComm::clearPackets(PACKET *sndPack, PACKET *rcvPack)
 
 void parallelComm::initPackets(PACKET *sndPack, PACKET *rcvPack)
 {
-  int i;
-  //
-  for(i=0;i<nsend;i++)     
+  for(int i=0;i<nsend;i++)     
     {
       sndPack[i].nints=sndPack[i].nreals=0;
       sndPack[i].intData=NULL;
       sndPack[i].realData=NULL;
     }
-  //
-  for(i=0;i<nrecv;i++)     
+  for(int i=0;i<nrecv;i++)     
     {
       rcvPack[i].nints=rcvPack[i].nreals=0;
       rcvPack[i].intData=NULL;
       rcvPack[i].realData=NULL;
     }
-  //
 }
