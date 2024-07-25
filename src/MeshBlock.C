@@ -22,13 +22,12 @@
 #include <cstdio>
 #include <cstdint>
 #include <cmath>
-#include <vector>
 #include <stdexcept>
 #include <algorithm>
-#include <unordered_set>
 #include "mpi.h"
 #include "codetypes.h"
 #include "MeshBlock.h"
+#include "TiogaMeshInfo.h"
 #include "tioga_gpu.h"
 #include "linklist.h"
 #include "tioga_math.h"
@@ -830,7 +829,7 @@ void MeshBlock::writeCellFile(int bid)
     snprintf(fname, sizeof(fname), "cell%s.dat", &(intstring[1]));
     fp = fopen(fname, "w");
     fprintf(fp, "TITLE =\"Tioga output\"\n");
-    fprintf(fp, "VARIABLES=\"X\",\"Y\",\"Z\",\"IBLANK\",\"IBLANK_CELL\" ");
+    fprintf(fp, R"(VARIABLES="X","Y","Z","IBLANK","IBLANK_CELL" )");
     fprintf(fp, "\n");
     fprintf(
         fp, "ZONE T=\"VOL_MIXED\",N=%d E=%d ET=BRICK, F=FEBLOCK\n", nnodes,
@@ -917,7 +916,7 @@ void MeshBlock::writeFlowFile(int bid, double* q, int nvar, int type)
     snprintf(fname, sizeof(fname), "flow%s.tec", &(intstring[1]));
     fp = fopen(fname, "w");
     fprintf(fp, "TITLE =\"Tioga output\"\n");
-    fprintf(fp, "VARIABLES=\"X\",\"Y\",\"Z\",\"IBLANK\",\"BTAG\"");
+    fprintf(fp, R"(VARIABLES="X","Y","Z","IBLANK","BTAG")");
     for (i = 0; i < nvar; i++) {
         snprintf(qstr, sizeof(qstr), "Q%d", i);
         fprintf(fp, ",\"%s\"", qstr);
@@ -1120,12 +1119,12 @@ void MeshBlock::writeBCnodes(char nodetype2tag, int bodyid)
     char filename[100];
     FILE* fp;
 
-    int sbuffer = 1;
+    const int sbuffer = 1;
     int rbuffer;
     int i, ii, i3;
 
     // set node type data
-    int nbc = (nodetype2tag == WALLNODETYPE) ? nwbc : nobc;
+    const int nbc = (nodetype2tag == WALLNODETYPE) ? nwbc : nobc;
     int* bcnode = (nodetype2tag == WALLNODETYPE) ? wbcnode : obcnode;
 
     int allnbc = 0;
@@ -1948,9 +1947,7 @@ MeshBlock::~MeshBlock()
     if (nodeRes != nullptr) TIOGA_FREE(nodeRes);
     if (elementBbox != nullptr) TIOGA_FREE(elementBbox);
     if (elementList != nullptr) TIOGA_FREE(elementList);
-    if (adt != nullptr) {
-        delete[] adt;
-    }
+    delete[] adt;
     if (donorList != nullptr) {
         for (i = 0; i < nnodes; i++) {
             deallocateLinkList(donorList[i]);
