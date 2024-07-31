@@ -110,9 +110,11 @@ void CartBlock::getInterpolatedData(
             }
 
             for (i = 0; i < listptr->nweights; i++) {
-                int const cell_index = cart_utils::get_cell_index(
-                    dims[0], dims[1], nf, listptr->inode[3 * i],
-                    listptr->inode[3 * i + 1], listptr->inode[3 * i + 2]);
+                int const cell_index =
+                    static_cast<int>(cart_utils::get_cell_index(
+                        dims[0], dims[1], nf,
+                        listptr->inode[static_cast<int>(3 * i)],
+                        listptr->inode[3 * i + 1], listptr->inode[3 * i + 2]));
                 for (n = 0; n < nvar_cell; n++) {
                     weight = listptr->weights[i];
                     qq[n] += qcell[cell_index + ncell_nf * n] * weight;
@@ -168,7 +170,8 @@ void CartBlock::preprocess(CartGrid* cg)
     for (int n = 0; n < 3; n++) {
         dx[n] = cg->dx[3 * global_id + n];
     }
-    dims[0] = cg->ihi[3 * global_id] - cg->ilo[3 * global_id] + 1;
+    dims[0] = cg->ihi[static_cast<int>(3 * global_id)] -
+              cg->ilo[static_cast<int>(3 * global_id)] + 1;
     dims[1] = cg->ihi[3 * global_id + 1] - cg->ilo[3 * global_id + 1] + 1;
     dims[2] = cg->ihi[3 * global_id + 2] - cg->ilo[3 * global_id + 2] + 1;
     nf = cg->nf;
@@ -224,7 +227,7 @@ void CartBlock::insertInInterpList(
     listptr->receptorInfo[1] = remoteid;
     listptr->receptorInfo[2] = remoteblockid;
     for (n = 0; n < 3; n++) {
-        ix[n] = (xtmp[n] - xlo[n]) / dx[n];
+        ix[n] = static_cast<int>((xtmp[n] - xlo[n]) / dx[n]);
         rst[n] = (xtmp[n] - xlo[n] - ix[n] * dx[n]) / dx[n];
         if (ix[n] == dims[n]) {
             if (fabs(rst[n]) < TOL) {
@@ -256,10 +259,10 @@ void CartBlock::insertInInterpList(
     }
     if (donor_frac == nullptr) {
         listptr->nweights = 8;
-        listptr->weights =
-            (double*)malloc(sizeof(double) * (listptr->nweights * 2));
-        listptr->inode =
-            (int*)malloc(sizeof(int) * (listptr->nweights * 2 * 3));
+        listptr->weights = (double*)malloc(
+            sizeof(double) * (static_cast<int>(listptr->nweights * 2)));
+        listptr->inode = (int*)malloc(
+            sizeof(int) * (static_cast<int>(listptr->nweights * 2 * 3)));
 
         cart_interp::linear_interpolation(
             nf, ix, dims, rst, &(listptr->nweights), listptr->inode,
