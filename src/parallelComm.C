@@ -95,14 +95,14 @@ void parallelComm::sendRecvPacketsAll(PACKET* sndPack, PACKET* rcvPack) const
         &real_request);
 
     for (i = 0; i < numprocs; i++) {
-        if (rcvPack[i].nreals > 0) {
-            rcvPack[i].realData =
-                (REAL*)malloc(sizeof(REAL) * rcvPack[i].nreals);
+        if (rcvPack[i].nints > 0) {
+            rcvPack[i].intData = (int*)malloc(sizeof(int) * rcvPack[i].nints);
         }
     }
     for (i = 0; i < numprocs; i++) {
-        if (rcvPack[i].nints > 0) {
-            rcvPack[i].intData = (int*)malloc(sizeof(int) * rcvPack[i].nints);
+        if (rcvPack[i].nreals > 0) {
+            rcvPack[i].realData =
+                (REAL*)malloc(sizeof(REAL) * rcvPack[i].nreals);
         }
     }
 
